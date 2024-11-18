@@ -4,28 +4,58 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    public float maxSpeed = 5f;
+    public float acceleration = 5f;
+    public float friction = 5f;
+    public float currentSpeed = 0f;
+
+    private Rigidbody2D rb;
+
+
     public enum FacingDirection
     {
         left, right
     }
 
-    // Start is called before the first frame update
     void Start()
     {
-        
+        rb = GetComponent<Rigidbody2D>();
     }
 
-    // Update is called once per frame
     void Update()
     {
         //The input from the player needs to be determined and then passed in the to the MovementUpdate which should
         //manage the actual movement of the character.
-        Vector2 playerInput = new Vector2();
+        //Vector2 playerInput = new Vector2();
+
+        float xInput = Input.GetAxisRaw("Horizontal"); // Get axisraw for no automatic smoothing
+        Vector2 playerInput = new Vector2(xInput, 0);
         MovementUpdate(playerInput);
     }
 
     private void MovementUpdate(Vector2 playerInput)
     {
+        if (playerInput.x != 0) // If input then add to currentSpeed until maxSpeed is reached
+        {
+            currentSpeed += playerInput.x * acceleration * Time.deltaTime;
+            currentSpeed = Mathf.Clamp(currentSpeed, -maxSpeed, maxSpeed);
+        }
+
+        if (playerInput.x == 0) // If no input then subtract from current speed until zero ---------- unless im facing the other way then add to current speed until zero
+        {
+            if (currentSpeed > 0)
+            {
+                currentSpeed -= friction * Time.deltaTime;
+                currentSpeed = Mathf.Max(currentSpeed, 0);
+            }
+            if (currentSpeed < 0) // Need to do both ways
+            {
+                currentSpeed += friction * Time.deltaTime;
+                currentSpeed = Mathf.Min(currentSpeed, 0);
+            }
+        }
+
+        rb.velocity = new Vector2(currentSpeed, rb.velocity.y);
 
     }
 
