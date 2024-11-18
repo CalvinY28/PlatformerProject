@@ -39,6 +39,15 @@ public class PlayerController : MonoBehaviour
         {
             currentSpeed += playerInput.x * acceleration * Time.deltaTime;
             currentSpeed = Mathf.Clamp(currentSpeed, -maxSpeed, maxSpeed);
+
+            if (playerInput.x > 0) // When moving right fast the right when moving left face the left
+            {
+                facingDirection = FacingDirection.right;
+            }
+            else
+            {
+                facingDirection = FacingDirection.left;
+            }
         }
 
         if (playerInput.x == 0) // If no input then subtract from current speed until zero ---------- unless im facing the other way then add to current speed until zero
@@ -61,7 +70,15 @@ public class PlayerController : MonoBehaviour
 
     public bool IsWalking()
     {
-        return false;
+        if (currentSpeed > 0.1f || currentSpeed < -0.1f)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+
     }
     public bool IsGrounded()
     {
@@ -70,6 +87,8 @@ public class PlayerController : MonoBehaviour
 
     public FacingDirection GetFacingDirection()
     {
-        return FacingDirection.left;
+        return facingDirection;
     }
+
+    private FacingDirection facingDirection = FacingDirection.left; // Created private variable to store information from the movement method
 }
