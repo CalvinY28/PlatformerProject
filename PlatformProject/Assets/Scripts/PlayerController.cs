@@ -10,7 +10,7 @@ public class PlayerController : MonoBehaviour
     public float currentSpeed = 0f;
 
     private Rigidbody2D rb;
-
+    public bool isGrounded = false;
 
     public enum FacingDirection
     {
@@ -82,7 +82,23 @@ public class PlayerController : MonoBehaviour
     }
     public bool IsGrounded()
     {
-        return false;
+        return isGrounded;
+    }
+
+    void OnCollisionStay2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isGrounded = true;
+        }
+    }
+
+    void OnCollisionExit2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isGrounded = false;
+        }
     }
 
     public FacingDirection GetFacingDirection()
