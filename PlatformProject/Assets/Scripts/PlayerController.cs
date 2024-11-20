@@ -12,6 +12,11 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     public bool isGrounded = false;
 
+    public float apexHeight = 6f;
+    public float apexTime = 5f;
+    public float jumpVelocity;
+    public float gravity;
+
     public enum FacingDirection
     {
         left, right
@@ -20,6 +25,12 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        gravity = (2 * apexHeight) / Mathf.Pow(apexTime, 2); // Works if i turn on gravity scale an
+        jumpVelocity = apexTime * apexHeight;
+
+        //gravity = (-2 * apexHeight) / Mathf.Pow(apexTime, 2);
+        //jumpVelocity = (2 * apexHeight) / apexTime;
     }
 
     void Update()
@@ -31,6 +42,13 @@ public class PlayerController : MonoBehaviour
         float xInput = Input.GetAxisRaw("Horizontal"); // Get axisraw for no automatic smoothing
         Vector2 playerInput = new Vector2(xInput, 0);
         MovementUpdate(playerInput);
+
+        //gravity = (2 * apexHeight) / Mathf.Pow(apexTime, 2); // Dont need to put it in update
+        //jumpVelocity = gravity * apexTime;
+        //gravity = (-2 * apexHeight) / Mathf.Pow(apexTime, 2);
+        //jumpVelocity = -gravity * apexTime;
+        //jumpVelocity = (2 * apexHeight) / apexTime;
+
     }
 
     private void MovementUpdate(Vector2 playerInput)
@@ -64,7 +82,14 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+
         rb.velocity = new Vector2(currentSpeed, rb.velocity.y);
+
+        if(Input.GetButtonDown("Jump") && isGrounded)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, jumpVelocity);
+            isGrounded = false;
+        }
 
     }
 
