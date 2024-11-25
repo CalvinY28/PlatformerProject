@@ -11,11 +11,16 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody2D rb;
     public bool isGrounded = false;
+    public LayerMask groundLayer; // need this
 
     public float apexHeight = 6f;
     public float apexTime = 5f;
     public float jumpVelocity;
     public float gravity;
+    public float terminalSpeed = -10f;
+
+    public float coyoteTime = 0.1f;
+    public float coyoteTimeCounter;
 
     public enum FacingDirection
     {
@@ -26,11 +31,9 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
 
-        gravity = (2 * apexHeight) / Mathf.Pow(apexTime, 2); // Works if i turn on gravity scale an
-        jumpVelocity = apexTime * apexHeight;
-
-        //gravity = (-2 * apexHeight) / Mathf.Pow(apexTime, 2);
-        //jumpVelocity = (2 * apexHeight) / apexTime;
+        gravity = (2 * apexHeight) / Mathf.Pow(apexTime, 2); // can not get this to work
+        jumpVelocity = (2 * apexHeight) / apexTime;
+        rb.gravityScale = gravity;
     }
 
     void Update()
@@ -42,12 +45,16 @@ public class PlayerController : MonoBehaviour
         float xInput = Input.GetAxisRaw("Horizontal"); // Get axisraw for no automatic smoothing
         Vector2 playerInput = new Vector2(xInput, 0);
         MovementUpdate(playerInput);
+        isGrounded = IsGrounded();
 
-        //gravity = (2 * apexHeight) / Mathf.Pow(apexTime, 2); // Dont need to put it in update
-        //jumpVelocity = gravity * apexTime;
-        //gravity = (-2 * apexHeight) / Mathf.Pow(apexTime, 2);
-        //jumpVelocity = -gravity * apexTime;
-        //jumpVelocity = (2 * apexHeight) / apexTime;
+        if (isGrounded)
+        {
+            coyoteTimeCounter = coyoteTime; // Reset counter if grounded
+        }
+        else
+        {
+            coyoteTimeCounter -= Time.deltaTime; // Lower counter if in the air
+        }
 
     }
 
@@ -85,17 +92,22 @@ public class PlayerController : MonoBehaviour
 
         rb.velocity = new Vector2(currentSpeed, rb.velocity.y);
 
-        if(Input.GetButtonDown("Jump") && isGrounded)
+        if(Input.GetButtonDown("Jump") && (isGrounded || coyoteTimeCounter > 0))
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpVelocity);
             isGrounded = false;
+        }
+
+        if (rb.velocity.y < terminalSpeed)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, terminalSpeed);
         }
 
     }
 
     public bool IsWalking()
     {
-        if (currentSpeed > 0.1f || currentSpeed < -0.1f)
+        if (currentSpeed > 0.01f || currentSpeed < -0.01f)
         {
             return true;
         }
@@ -107,23 +119,13 @@ public class PlayerController : MonoBehaviour
     }
     public bool IsGrounded()
     {
-        return isGrounded;
-    }
-
-    void OnCollisionStay2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
+        Debug.DrawRay(transform.position, Vector2.down * 0.7f, Color.red);
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 0.7f, groundLayer);
+        if (hit.collider != null && hit.collider.CompareTag("Ground")) // got spammed with error without != null
         {
-            isGrounded = true;
+            return true;
         }
-    }
-
-    void OnCollisionExit2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
-        {
-            isGrounded = false;
-        }
+        return false;
     }
 
     public FacingDirection GetFacingDirection()
