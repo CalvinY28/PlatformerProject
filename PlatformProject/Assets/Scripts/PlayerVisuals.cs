@@ -12,13 +12,15 @@ public class PlayerVisuals : MonoBehaviour
     public SpriteRenderer bodyRenderer;
     public PlayerController playerController;
 
-    private int isWalkingHash, isGroundedHash;
+    private int idleHash, walkingHask, jumpingHash, dieHash;
 
     // Start is called before the first frame update
     void Start()
     {
-        isWalkingHash = Animator.StringToHash("IsWalking");
-        isGroundedHash = Animator.StringToHash("IsGrounded");
+        idleHash = Animator.StringToHash("Idle");
+        walkingHask = Animator.StringToHash("Walking");
+        jumpingHash = Animator.StringToHash("Jumping");
+        dieHash = Animator.StringToHash("Death");
     }
 
     // Update is called once per frame
@@ -30,8 +32,33 @@ public class PlayerVisuals : MonoBehaviour
     //It is not recommended to make changes to the functionality of this code for the W10 journal.
     private void VisualsUpdate()
     {
-        animator.SetBool(isWalkingHash, playerController.IsWalking());
-        animator.SetBool(isGroundedHash, playerController.IsGrounded());
+        if (playerController.PreviousCharacterState != playerController.currentCharacterState)
+        {
+            switch (playerController.currentCharacterState)
+            {
+                case PlayerController.CharacterState.idle:
+                    animator.CrossFade(idleHash, 0f);
+                    break;
+                case PlayerController.CharacterState.walk:
+                    animator.CrossFade(walkingHask, 0f);
+                    break;
+                case PlayerController.CharacterState.jump:
+                    animator.CrossFade(jumpingHash, 0f);
+                    break;
+                case PlayerController.CharacterState.die:
+                    animator.CrossFade(dieHash, 0f);
+                    break;
+            }
+        }
+
+        //animator.SetBool(isWalkingHash, playerController.IsWalking());
+        //animator.SetBool(isGroundedHash, playerController.IsGrounded());
+
+        //if (playerController.isDead())
+        //{
+        //    animator.SetTrigger(onDieHash);
+        //}
+
         switch (playerController.GetFacingDirection())
         {
             case PlayerController.FacingDirection.left:
