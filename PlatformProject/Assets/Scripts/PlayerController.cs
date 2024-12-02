@@ -125,18 +125,29 @@ public class PlayerController : MonoBehaviour
 
     private void MovementUpdate(Vector2 playerInput)
     {
+        int isCollidingHorizontallyLeftandRight = CheckHorizontalCollision();
+
         if (playerInput.x != 0) // If input then add to currentSpeed until maxSpeed is reached
         {
-            currentSpeed += playerInput.x * acceleration * Time.deltaTime;
-            currentSpeed = Mathf.Clamp(currentSpeed, -maxSpeed, maxSpeed);
-
-            if (playerInput.x > 0) // When moving right fase the right when moving left face the left
+            if (playerInput.x > 0 && isCollidingHorizontallyLeftandRight != 1 || 
+                playerInput.x < 0 && isCollidingHorizontallyLeftandRight != -1) // If is colliding left or right speed = 0
             {
-                facingDirection = FacingDirection.right;
+                currentSpeed += playerInput.x * acceleration * Time.deltaTime;
+                currentSpeed = Mathf.Clamp(currentSpeed, -maxSpeed, maxSpeed);
+
+                if (playerInput.x > 0) // When moving right fase the right when moving left face the left
+                {
+                    facingDirection = FacingDirection.right;
+                }
+                else
+                {
+                    facingDirection = FacingDirection.left;
+                }
+
             }
             else
             {
-                facingDirection = FacingDirection.left;
+                currentSpeed = 0f;
             }
         }
 
@@ -191,6 +202,23 @@ public class PlayerController : MonoBehaviour
             return true;
         }
         return false;
+    }
+
+    private int CheckHorizontalCollision() // Change to int so i can use numbers
+    {
+        float checkDistance = 0.7f;
+        Vector2 leftCheck = transform.position - new Vector3(0.4f, -0.2f, 0);
+        Vector2 rightCheck = transform.position + new Vector3(0.4f, 0.2f, 0);
+
+        Debug.DrawRay(rightCheck, Vector2.down * checkDistance, Color.red); // debug to place the raycast in the right place
+        Debug.DrawRay(leftCheck, Vector2.down * checkDistance, Color.red);
+
+        RaycastHit2D hitLeft = Physics2D.Raycast(leftCheck, Vector2.down, checkDistance, groundLayer); // Cast to the left
+        RaycastHit2D hitRight = Physics2D.Raycast(rightCheck, Vector2.down, checkDistance, groundLayer); // Cast to the right
+
+        if (hitLeft.collider != null) return -1; // Colliding to the left
+        if (hitRight.collider != null) return 1; // Colliding to the right
+        return 0;
     }
 
     public FacingDirection GetFacingDirection()
