@@ -24,6 +24,22 @@ public class PlayerController : MonoBehaviour
 
     public int health = 10;
 
+    public float doubleTapTime = 0.2f;
+    public float lastTapTime = 0;
+    public float lastHorizontalInput = 0f;
+    public float dashCooldownTime = 0.5f;
+    public bool canDash = true;
+
+    public bool isTouchingWall;
+    public float wallJumpXVelocity = 5f;
+    public float wallJumpYVelocity = 13f;
+    public bool isWallJumping;
+
+    public float jetpackAcceleration = 5f;
+    public float maxJetpackSpeed = 10f;
+    public bool isJetpacking = false;
+    public bool hasJumped = false;
+
     public enum CharacterState
     {
         idle, walk, jump, die
@@ -49,6 +65,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        DoubleTapToDash();
         PreviousCharacterState = currentCharacterState;
 
         //The input from the player needs to be determined and then passed in the to the MovementUpdate which should
@@ -68,6 +85,8 @@ public class PlayerController : MonoBehaviour
         {
             coyoteTimeCounter -= Time.deltaTime; // Lower counter if in the air
         }
+
+        
 
         switch (currentCharacterState)
         {
@@ -127,6 +146,8 @@ public class PlayerController : MonoBehaviour
     {
         int isCollidingHorizontallyLeftandRight = CheckHorizontalCollision();
 
+        isTouchingWall = isCollidingHorizontallyLeftandRight != 0 && !isGrounded;
+
         if (playerInput.x != 0) // If input then add to currentSpeed until maxSpeed is reached
         {
             if (playerInput.x > 0 && isCollidingHorizontallyLeftandRight != 1 || 
@@ -168,15 +189,48 @@ public class PlayerController : MonoBehaviour
 
         rb.velocity = new Vector2(currentSpeed, rb.velocity.y);
 
+
+
         if(Input.GetButtonDown("Jump") && (isGrounded || coyoteTimeCounter > 0))
         {
             rb.velocity = new Vector2(rb.velocity.x, jumpVelocity);
             isGrounded = false;
+            hasJumped = true;
+        }
+
+        if (Input.GetButtonDown("Jump") && isTouchingWall && !isWallJumping)
+        {
+            isWallJumping = true;
+            rb.velocity = new Vector2(-wallJumpXVelocity, wallJumpYVelocity);
+            hasJumped = true;
+        }
+
+        if(isGrounded)
+        {
+            isWallJumping = false;
+            //hasJumped = false;
         }
 
         if (rb.velocity.y < terminalSpeed)
         {
             rb.velocity = new Vector2(rb.velocity.x, terminalSpeed);
+        }
+
+        if (Input.GetButton("Jump") && !isGrounded && !isTouchingWall && hasJumped)
+        {
+            isJetpacking = true;
+        }
+        else
+        {
+            isJetpacking = false;
+        }
+
+        if (isJetpacking)
+        {
+            if (rb.velocity.y < maxJetpackSpeed)
+            {
+                rb.velocity += new Vector2(0, jetpackAcceleration * Time.deltaTime);
+            }
         }
 
     }
@@ -207,7 +261,7 @@ public class PlayerController : MonoBehaviour
     private int CheckHorizontalCollision() // Change to int so i can use numbers
     {
         float checkDistance = 0.7f;
-        Vector2 leftCheck = transform.position - new Vector3(0.4f, -0.2f, 0);
+        Vector2 leftCheck = transform.position - new Vector3(0.5f, -0.2f, 0);
         Vector2 rightCheck = transform.position + new Vector3(0.4f, 0.2f, 0);
 
         Debug.DrawRay(rightCheck, Vector2.down * checkDistance, Color.red); // debug to place the raycast in the right place
@@ -220,6 +274,58 @@ public class PlayerController : MonoBehaviour
         if (hitRight.collider != null) return 1; // Colliding to the right
         return 0;
     }
+
+    public void DoubleTapToDash()
+    {
+        float xInput = Input.GetAxisRaw("Horizontal");
+
+        if (!canDash) return; // Exit if cant dash
+
+        if (xInput < 0 && lastHorizontalInput == 0 && !isGrounded) // Detect left double-tap
+        {
+            if (Time.time - lastTapTime <= doubleTapTime) // If time is less than or equal to doubleTapTime, double-tap.
+            {
+                Debug.Log("left");
+                Dash(Vector2.left);
+            }
+
+            lastTapTime = Time.time;
+        }
+
+        if (xInput > 0 && lastHorizontalInput == 0 && !isGrounded) // Detect right double-tap
+        {
+            if (Time.time - lastTapTime <= doubleTapTime) // I should use time here instead of delta time
+            {
+                Debug.Log("right");
+                Dash(Vector2.right);
+            }
+
+            lastTapTime = Time.time;
+        }
+
+        lastHorizontalInput = xInput; // Reset
+    }
+
+    public void Dash(Vector2 direction)
+    {
+        //rb.velocity = new Vector2(direction.x * 20f, rb.velocity.y);
+        //rb.AddForce(direction * 20f, ForceMode2D.Impulse);
+        Vector2 dashDistance = direction.normalized * 5f; // dosent work for now just leave it as teleporting
+        transform.position += (Vector3)dashDistance;
+
+        Debug.Log("gfrewuihwe");
+        StartCoroutine(DashCooldown());
+    }
+
+    public IEnumerator DashCooldown()
+    {
+        canDash = false;
+        yield return new WaitForSeconds(dashCooldownTime);
+        canDash = true;
+    }
+
+
+
 
     public FacingDirection GetFacingDirection()
     {
