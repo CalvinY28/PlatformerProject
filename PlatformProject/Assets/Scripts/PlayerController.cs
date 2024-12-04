@@ -271,8 +271,8 @@ public class PlayerController : MonoBehaviour
     }
     public bool IsGrounded()
     {
-        //Debug.DrawRay(transform.position, Vector2.down * 0.7f, Color.red);
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 0.7f, groundLayer);
+        //Debug.DrawRay(transform.position, Vector2.down * 0.9f, Color.red);
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 0.9f, groundLayer);
         if (hit.collider != null && hit.collider.CompareTag("Ground")) // got spammed with error without != null
         {
             return true;
@@ -282,12 +282,12 @@ public class PlayerController : MonoBehaviour
 
     private int CheckHorizontalCollision() // Change to int so i can use numbers
     {
-        float checkDistance = 0.7f;
+        float checkDistance = 0.9f;
         Vector2 leftCheck = transform.position - new Vector3(0.5f, -0.2f, 0);
         Vector2 rightCheck = transform.position + new Vector3(0.4f, 0.2f, 0);
 
-        //Debug.DrawRay(rightCheck, Vector2.down * checkDistance, Color.red); // debug to place the raycast in the right place
-        //Debug.DrawRay(leftCheck, Vector2.down * checkDistance, Color.red);
+        Debug.DrawRay(rightCheck, Vector2.down * checkDistance, Color.red); // debug to place the raycast in the right place
+        Debug.DrawRay(leftCheck, Vector2.down * checkDistance, Color.red);
 
         RaycastHit2D hitLeft = Physics2D.Raycast(leftCheck, Vector2.down, checkDistance, groundLayer); // Cast to the left
         RaycastHit2D hitRight = Physics2D.Raycast(rightCheck, Vector2.down, checkDistance, groundLayer); // Cast to the right
