@@ -39,6 +39,9 @@ public class PlayerController : MonoBehaviour
     public float maxJetpackSpeed = 10f;
     public bool isJetpacking = false;
     public bool hasJumped = false;
+    public float maxFuel = 3f;
+    public float fuelRegenRate = 1f;
+    public float currentFuel;
 
     public enum CharacterState
     {
@@ -61,6 +64,8 @@ public class PlayerController : MonoBehaviour
         gravity = (2 * apexHeight) / Mathf.Pow(apexTime, 2); // can not get this to work
         jumpVelocity = (2 * apexHeight) / apexTime;
         rb.gravityScale = gravity;
+
+        currentFuel = maxFuel;
     }
 
     void Update()
@@ -148,9 +153,24 @@ public class PlayerController : MonoBehaviour
 
         isTouchingWall = isCollidingHorizontallyLeftandRight != 0 && !isGrounded;
 
+        if (isTouchingWall == true)
+        {
+            //rb.gravityScale = gravity / 200f;
+            //rb.velocity = new Vector2(rb.velocity.x, -2f);
+            //rb.AddForce(Vector2.down / 200f, ForceMode2D.Impulse);
+            if (rb.velocity.y < -1f)
+            {
+                rb.AddForce(new Vector2(0, -1f), ForceMode2D.Force); // sliding down wall dosent work how intended
+            }
+        }
+        else
+        {
+            //rb.gravityScale = gravity;
+        }
+
         if (playerInput.x != 0) // If input then add to currentSpeed until maxSpeed is reached
         {
-            if (playerInput.x > 0 && isCollidingHorizontallyLeftandRight != 1 || 
+            if (playerInput.x > 0 && isCollidingHorizontallyLeftandRight != 1 || // should add cyote time to wall jumping
                 playerInput.x < 0 && isCollidingHorizontallyLeftandRight != -1) // If is colliding left or right speed = 0
             {
                 currentSpeed += playerInput.x * acceleration * Time.deltaTime;
@@ -208,7 +228,8 @@ public class PlayerController : MonoBehaviour
         if(isGrounded)
         {
             isWallJumping = false;
-            //hasJumped = false;
+            //hasJumped = false; // this is broken keeps being false but its ok i dont really need it anyway
+            currentFuel = Mathf.Min(currentFuel + fuelRegenRate * Time.deltaTime, maxFuel); // Regen fuel when on ground
         }
 
         if (rb.velocity.y < terminalSpeed)
@@ -216,9 +237,10 @@ public class PlayerController : MonoBehaviour
             rb.velocity = new Vector2(rb.velocity.x, terminalSpeed);
         }
 
-        if (Input.GetButton("Jump") && !isGrounded && !isTouchingWall && hasJumped)
+        if (Input.GetButton("Jump") && !isGrounded && !isTouchingWall && hasJumped && currentFuel > 0)
         {
             isJetpacking = true;
+            currentFuel -= Time.deltaTime; // Consume feul when true
         }
         else
         {
@@ -249,7 +271,7 @@ public class PlayerController : MonoBehaviour
     }
     public bool IsGrounded()
     {
-        Debug.DrawRay(transform.position, Vector2.down * 0.7f, Color.red);
+        //Debug.DrawRay(transform.position, Vector2.down * 0.7f, Color.red);
         RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, 0.7f, groundLayer);
         if (hit.collider != null && hit.collider.CompareTag("Ground")) // got spammed with error without != null
         {
@@ -264,8 +286,8 @@ public class PlayerController : MonoBehaviour
         Vector2 leftCheck = transform.position - new Vector3(0.5f, -0.2f, 0);
         Vector2 rightCheck = transform.position + new Vector3(0.4f, 0.2f, 0);
 
-        Debug.DrawRay(rightCheck, Vector2.down * checkDistance, Color.red); // debug to place the raycast in the right place
-        Debug.DrawRay(leftCheck, Vector2.down * checkDistance, Color.red);
+        //Debug.DrawRay(rightCheck, Vector2.down * checkDistance, Color.red); // debug to place the raycast in the right place
+        //Debug.DrawRay(leftCheck, Vector2.down * checkDistance, Color.red);
 
         RaycastHit2D hitLeft = Physics2D.Raycast(leftCheck, Vector2.down, checkDistance, groundLayer); // Cast to the left
         RaycastHit2D hitRight = Physics2D.Raycast(rightCheck, Vector2.down, checkDistance, groundLayer); // Cast to the right
@@ -309,9 +331,20 @@ public class PlayerController : MonoBehaviour
     public void Dash(Vector2 direction)
     {
         //rb.velocity = new Vector2(direction.x * 20f, rb.velocity.y);
-        //rb.AddForce(direction * 20f, ForceMode2D.Impulse);
-        Vector2 dashDistance = direction.normalized * 5f; // dosent work for now just leave it as teleporting
-        transform.position += (Vector3)dashDistance;
+        //rb.AddForce(direction * 20f, ForceMode2D.Force);
+
+        //Vector2 dashDistance = direction.normalized * 2f; // dosent work for now just leave it as teleporting
+        //transform.position += dashDistance;
+
+        //rb.AddForce(direction);
+        //rb.velocity = direction.normalized * 20f;
+        //rb.AddForce(direction.normalized * 20f, ForceMode2D.Impulse);
+
+        //transform.Translate(direction.normalized * 5f, Space.World);
+
+        StartCoroutine(PerformDash(direction, 6f, 0.2f)); // realized i need to use a corutine/timer to make it push
+        rb.gravityScale = -1f;
+
 
         Debug.Log("gfrewuihwe");
         StartCoroutine(DashCooldown());
@@ -322,6 +355,33 @@ public class PlayerController : MonoBehaviour
         canDash = false;
         yield return new WaitForSeconds(dashCooldownTime);
         canDash = true;
+    }
+
+    private IEnumerator PerformDash(Vector2 direction, float distance, float duration)
+    {
+        Vector2 startVelocity = rb.velocity;
+        //Vector2 dashVelocity = direction.normalized * distance;
+        Vector2 dashVelocity = direction.normalized * (distance / duration); // Velocity needed to cover the distance in the time frame
+
+        float elapsedTime = 0f;
+        while (elapsedTime < duration) // Need this to make the player move over time and hit walls during time of the dash
+        {
+            int isCollidingHorizontallyLeftandRight = CheckHorizontalCollision();
+            if (isCollidingHorizontallyLeftandRight != 0)
+            {
+                Debug.Log("wall wall wall");
+                break;
+            }
+
+            rb.velocity = new Vector2(direction.x * distance * 2, 0f); // I can lerp this or sdomthing to make it smooth i think?
+
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        rb.velocity = dashVelocity;
+        rb.gravityScale = gravity;
+
     }
 
 
